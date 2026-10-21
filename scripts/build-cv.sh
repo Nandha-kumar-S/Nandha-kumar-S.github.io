@@ -12,6 +12,11 @@
 # Headless Chrome is used rather than a PDF library because it is the same
 # engine that renders the page — the print stylesheet in globals.css is
 # honoured exactly, and anchors survive as real clickable link annotations.
+#
+# NOTE ON THE ORDER OF OPERATIONS: public/cv.pdf is an input to the build (it
+# gets copied into out/), and this script also produces it from that same
+# build. So the PDF written here lands in out/ only on the NEXT build — which
+# the deploy workflow does anyway. Commit the regenerated PDF and push.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,12 +26,16 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 OUT="${PWD}/public/cv.pdf"
 
 if [ ! -x "${CHROME}" ]; then
-  echo "Google Chrome not found at: $CHROME" >&2
-  echo "Install Chrome, or open /cv and print to PDF manually." >&2
+  echo "Google Chrome not found at: ${CHROME}" >&2
+  echo "Install Chrome, or open /cv in a browser and print to PDF manually." >&2
   exit 1
 fi
 
-cleanup() { pkill -f "next start -p ${PORT}" 2>/dev/null || true; }
+SERVER_PID=""
+cleanup() {
+  [ -n "${SERVER_PID}" ] && kill "${SERVER_PID}" 2>/dev/null || true
+  pkill -f "http.server ${PORT}" 2>/dev/null || true
+}
 trap cleanup EXIT
 cleanup
 sleep 1
@@ -34,20 +43,32 @@ sleep 1
 echo "Building..."
 npm run build >/dev/null
 
-echo "Serving on :${PORT}..."
-npx next start -p "${PORT}" >/tmp/cv-server.log 2>&1 &
+if [ ! -d out ]; then
+  echo "No out/ directory — is output: 'export' still set in next.config.ts?" >&2
+  exit 1
+fi
+
+# A plain file server, because `next start` refuses to run against a static
+# export. python3 ships with macOS, so this needs no extra dependency.
+echo "Serving out/ on :${PORT}..."
+(cd out && exec python3 -m http.server "${PORT}" --bind 127.0.0.1) >/tmp/cv-server.log 2>&1 &
+SERVER_PID=$!
+# Drop it from the job table so bash doesn't print "Terminated" when the
+# EXIT trap kills it.
+disown "${SERVER_PID}" 2>/dev/null || true
 
 for _ in $(seq 1 30); do
-  curl -sf -o /dev/null "http://localhost:${PORT}/cv" && break
+  curl -sf -o /dev/null "http://127.0.0.1:${PORT}/cv/" && break
   sleep 1
 done
 
 echo "Rendering..."
+# trailingSlash: true means the route is /cv/, not /cv.
 # --virtual-time-budget waits for fonts and layout to settle before capturing;
 # without it the PDF can be produced mid-paint with fallback fonts.
 "${CHROME}" --headless=new --disable-gpu --no-pdf-header-footer \
   --print-to-pdf="${OUT}" --virtual-time-budget=8000 \
-  "http://localhost:${PORT}/cv" 2>/dev/null
+  "http://127.0.0.1:${PORT}/cv/" 2>/dev/null
 
 # pdfinfo reports the real page count. (Counting pdftotext's form feeds is
 # off by one: it emits one after every page, including the last.)

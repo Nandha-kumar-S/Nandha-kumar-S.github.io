@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+# Every push to main publishes. `workflow_dispatch` is there so the site can
+# be re-deployed from the Actions tab without an empty commit.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The minimum Pages needs: read the repo, write a Pages deployment, and mint
+# the OIDC token `deploy-pages` uses to prove the deployment came from here.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deployments race. `cancel-in-progress: false` so a running
+# publish finishes rather than leaving the site half-swapped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `ci`, not `install` — installs exactly the versions in
+      # package-lock.json, so a deploy can't silently pick up a new minor.
+      - run: npm ci
+
+      - name: Build static export
+        run: npm run build
+
+      # Without this, Pages would run the output through Jekyll, which skips
+      # every file and folder beginning with an underscore — and Next puts all
+      # its CSS and JS in `_next/`. The site would load as unstyled HTML.
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
