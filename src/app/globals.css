@@ -135,11 +135,16 @@ main:has([data-home]) + footer {
  * web page: site chrome removed, the warm palette dropped for black on white
  * (printers render a tinted background as a grey wash, and some strip it
  * entirely, which would leave the panel-coloured text unreadable), and links
- * un-styled since an underline in blue means nothing on paper.
+ * BLUE is dropped (an underline in blue means nothing on paper — there's no
+ * click to follow), but the underline itself stays: it's what tells a reader
+ * holding a printed page, where the five links in the header are still live
+ * in the PDF, which words those are.
  */
 .cv-sheet a {
   color: inherit;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 2px;
 }
 
 @media screen {
@@ -186,7 +191,7 @@ main:has([data-home]) + footer {
    * with `npm run cv`, which reports the page count.
    */
   html:has([data-cv]) {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   /* Tailwind's print: variants handle the wrapper; the sheet itself drops its

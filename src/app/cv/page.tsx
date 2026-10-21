@@ -100,13 +100,8 @@ export default async function CvPage() {
                 <Dot />
               </span>
             ))}
-            {/*
-              Plain text, not an anchor. Every other link here is clickable;
-              this one would resolve to nothing, and a dead hyperlink in a CV
-              is worse than none. Wrap it in an <a href={`https://${profile.siteUrl}`}>
-              the day the site is actually deployed.
-            */}
-            Portfolio
+            {/* Site is live, so this is a real link like the rest. */}
+            <a href={`https://${profile.siteUrl}`}>Portfolio</a>
           </p>
         </header>
 

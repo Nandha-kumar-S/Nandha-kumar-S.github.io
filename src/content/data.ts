@@ -59,8 +59,10 @@ export const profile: Profile = {
    */
   cvUrl: "/cv.pdf",
   phone: "+91 93440 02342",
-  // TODO: replace once the site is deployed — nothing is hosted yet.
-  siteUrl: "nandhakumar.dev",
+  // Live on GitHub Pages. Update this (and nowhere else — the CV reads from
+  // here) if a custom domain is ever attached; Pages will redirect the old
+  // address automatically, but the CV's printed text won't update itself.
+  siteUrl: "nandha-kumar-s.github.io",
   cvSummary:
     "A research engineer with over three years building AI/ML applications for clinical trials. The research is the applied kind: I start from a problem, survey what exists or has just been published, test what holds up against real data, and ship what survives. Life sciences is where I work, not the limit of what I can work on.",
   /**
