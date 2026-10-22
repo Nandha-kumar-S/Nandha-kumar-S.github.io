@@ -11,7 +11,13 @@ import { getProfile } from "@/lib/content";
  * what a visitor needs first is who this is and what he can do, and the nav
  * already reaches every listing.
  *
- * The three blocks cascade diagonally, each overlapping the one before it.
+ * Two blocks, name then card, the card tucked under the name's lower-left
+ * edge. This used to be three (name, intro card, "What I do" card) staggered
+ * diagonally, each overlapping the next; dropping "What I do" left one card
+ * with nothing to its right, so it's sized to its own content (8 of 12
+ * columns) rather than stretched to the full row — stretching it would just
+ * leave the freed-up space empty inside the panel instead of outside it.
+ *
  * See `data-home` in globals.css for the rule that lets the footer sit flush.
  */
 export default async function HomePage() {
@@ -29,30 +35,21 @@ export default async function HomePage() {
       className="flex flex-1 flex-col justify-center px-4 py-6 sm:px-0"
     >
       {/*
-        A diagonal staircase: name, then About tucked under its lower edge and
-        shifted right, then What I do overlapping About's lower right.
+        Still one 12-column grid, even with a single card — that's what keeps
+        the -mt-10 overlap and the pb-12 clearance it eats into working
+        exactly as before. z-20/z-10 (name over card) is belt-and-braces: the
+        overlap is sized to land in empty space, never on the surname, but
+        keeping the name on top means a rounding difference can never hide it.
 
-        All three live in ONE 12-column grid so the horizontal offsets are
-        column spans rather than hand-tuned percentages. Both cards are
-        deliberately the SAME width — 7 columns each, About on 1–7 and What I
-        do on 6–12 — which is the only split of a 12-column grid that makes two
-        equal cards meet in the middle: 2 × 7 − 2 overlapped = 12. About
-        therefore starts flush with the name's left edge rather than indented,
-        so the cascade has no gap down its left side. The vertical overlap is
-        the negative top margin on each following row. z-index rises down the
-        cascade so a later block sits in front, and the name keeps the highest
-        so its text can never end up behind a card.
-
-        Below `md` every offset is dropped and the three simply stack — an
-        overlap at phone width would hide content rather than frame it.
+        Below `md` the offset is dropped and the two simply stack.
       */}
       <div className="mx-auto grid w-full max-w-(--container-wide) gap-4 md:grid-cols-12 md:gap-0">
         {/*
-          pb-12 is load-bearing, not decoration: it's the clearance the About
-          card's -mt-10 eats into, so the overlap consumes empty space instead
-          of the surname.
+          pb-12 is load-bearing, not decoration: it's the clearance the card's
+          -mt-10 eats into, so the overlap consumes empty space instead of the
+          surname.
         */}
-        <div className="relative z-30 px-2 md:col-start-1 md:col-end-7 md:row-start-1 md:pb-12">
+        <div className="relative z-20 px-2 md:col-start-1 md:col-end-9 md:row-start-1 md:pb-12">
           <p className="mb-1 text-[clamp(1.1rem,2.4vw,1.7rem)] text-ink-muted">
             Hey, I&apos;m
           </p>
@@ -63,14 +60,16 @@ export default async function HomePage() {
         </div>
 
         {/*
-          Every card in the cascade carries a canvas-coloured box-shadow. All
-          three are the same tone, so without that band an overlap would read
-          as one irregular blob rather than two distinct shapes — it's the gap
-          between the outlines in the sketch, drawn as a ring instead of a line.
+          Sized to its content (8 of 12 columns) rather than stretched to the
+          full row — a card spanning every column but a paragraph still
+          capped at a readable measure just leaves dead space on the right.
+          No box-shadow ring here: that ring existed only to keep this card
+          visually separate from a second, same-coloured card beside it. With
+          nothing beside it, the ring has nothing to separate.
         */}
-        <div className="relative z-10 rounded-(--radius-panel) bg-panel px-7 py-7 sm:px-9 md:col-start-1 md:col-end-8 md:row-start-2 md:-mt-10 md:pr-12 md:shadow-[0_0_0_7px_var(--color-canvas)]">
+        <div className="relative z-10 rounded-(--radius-panel) bg-panel px-7 py-9 sm:px-10 sm:py-10 md:col-start-1 md:col-end-9 md:row-start-2 md:-mt-10">
           {/* Paragraphs split on render — see the note on Profile.heroIntro. */}
-          <div className="max-w-[44ch] space-y-3 text-[clamp(0.95rem,1.5vw,1.0625rem)]">
+          <div className="max-w-[48ch] space-y-3 text-[clamp(0.95rem,1.5vw,1.0625rem)]">
             {profile.heroIntro.split("\n\n").map((paragraph) => (
               <p key={paragraph.slice(0, 40)}>{paragraph}</p>
             ))}
@@ -88,8 +87,8 @@ export default async function HomePage() {
           {/*
             The only profile links on the site outside /about. They were cut
             from the global footer, and without them here a visitor landing on
-            the homepage would have no route to the code — which is the one job
-            this site exists to do.
+            the homepage would have no route to the code — which is the one
+            job this site exists to do.
           */}
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-rule pt-4 text-sm">
             {profile.profiles.map((link) => (
@@ -112,33 +111,6 @@ export default async function HomePage() {
                 Email
               </a>
             </li>
-          </ul>
-        </div>
-
-        <div className="relative z-20 rounded-(--radius-panel) bg-panel px-7 py-7 sm:px-9 md:col-start-6 md:col-end-13 md:row-start-3 md:-mt-14 md:pl-12 md:shadow-[0_0_0_7px_var(--color-canvas)]">
-          <h2 className="mb-3.5 font-mono text-xs tracking-[0.09em] text-ink-muted uppercase">
-            What I do
-          </h2>
-          <ul>
-            {profile.capabilities.map((capability) => (
-              <li
-                key={capability}
-                className="grid grid-cols-[auto_1fr] gap-x-3.5 border-t border-rule py-2.5 text-[clamp(0.95rem,1.5vw,1.0625rem)] leading-snug last:border-b"
-              >
-                {/*
-                  A drawn square rather than a text bullet: it can't be swapped
-                  for a different glyph by the font, and `em` units keep it
-                  proportional to the line it marks as the clamped type scales.
-                  Decorative — the <ul>/<li> already carry the list semantics a
-                  screen reader announces.
-                */}
-                <span
-                  aria-hidden="true"
-                  className="mt-[0.62em] size-[0.4em] shrink-0 bg-ink-muted"
-                />
-                <span>{capability}</span>
-              </li>
-            ))}
           </ul>
         </div>
       </div>
